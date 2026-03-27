@@ -1,0 +1,5 @@
+{
+  "name": "DL - Talk to my Data",
+  "description": "A conversational interface to query and visualize your Google Analytics data using Gemini AI.",
+  "requestFramePermissions": []
+}
