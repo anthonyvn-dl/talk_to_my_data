@@ -5,8 +5,16 @@ import { BetaAnalyticsDataClient } from '@google-analytics/data';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
 import { GoogleGenAI, Type } from "@google/genai";
+
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const app = express();
+const PORT = process.env.PORT || 8080;
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+app.use(express.json());
 
 app.post('/api/chat', async (req, res) => {
   const { messages } = req.body;
@@ -25,17 +33,6 @@ app.post('/api/chat', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
-dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const app = express();
-const PORT = process.env.PORT || 8080;
-
-app.use(express.json());
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const getRedirectUri = () => {
   const appUrl = process.env.APP_URL?.replace(/\/$/, '');
