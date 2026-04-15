@@ -1,6 +1,12 @@
-import { GoogleGenAI, Type } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+export async function getChatResponse(messages: any[]) {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages }),
+  });
+  if (!response.ok) throw new Error('Chat request failed');
+  return response.json();
+}
 
 export const analyticsTool = {
   name: "query_google_analytics",
