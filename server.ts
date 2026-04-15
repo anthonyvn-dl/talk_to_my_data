@@ -1,5 +1,4 @@
 import express from 'express';
-import { createServer as createViteServer } from 'vite';
 import { OAuth2Client } from 'google-auth-library';
 import { BetaAnalyticsDataClient } from '@google-analytics/data';
 import dotenv from 'dotenv';
@@ -16,15 +15,68 @@ const PORT = process.env.PORT || 8080;
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 app.use(express.json());
 
+// ✅ Définition des tools Gemini AVANT utilisation
+const analyticsTool = {
+  name: "query_analytics",
+  description: "Query Google Analytics GA4 data for metrics like active users, sessions, page views, etc.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      propertyId: {
+        type: Type.STRING,
+        description: "The GA4 property ID (numeric, e.g. '123456789')",
+      },
+      metrics: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING },
+        description: "List of GA4 metric names (e.g. ['activeUsers', 'sessions'])",
+      },
+      dimensions: {
+        type: Type.ARRAY,
+        items: { type: Type.STRING },
+        description: "List of GA4 dimension names (e.g. ['date', 'country'])",
+      },
+      startDate: {
+        type: Type.STRING,
+        description: "Start date in YYYY-MM-DD format or relative (e.g. '30daysAgo')",
+      },
+      endDate: {
+        type: Type.STRING,
+        description: "End date in YYYY-MM-DD format or 'today'",
+      },
+    },
+    required: ["propertyId", "metrics"],
+  },
+};
+
+const bigQueryTool = {
+  name: "query_bigquery",
+  description: "Run a SQL query on BigQuery to analyze data.",
+  parameters: {
+    type: Type.OBJECT,
+    properties: {
+      query: {
+        type: Type.STRING,
+        description: "The SQL query to run on BigQuery",
+      },
+      projectId: {
+        type: Type.STRING,
+        description: "The GCP project ID for BigQuery",
+      },
+    },
+    required: ["query"],
+  },
+};
+
 app.post('/api/chat', async (req, res) => {
   const { messages } = req.body;
-  
+
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash",
       contents: messages.map((m: any) => ({ role: m.role, parts: m.parts })),
       config: {
-        systemInstruction: `...`, // copiez le même systemInstruction qu'avant
+        systemInstruction: `You are a helpful data analyst assistant. You help users query and understand their Google Analytics and BigQuery data. Use the available tools to fetch real data when needed.`,
         tools: [{ functionDeclarations: [analyticsTool, bigQueryTool] }],
       },
     });
@@ -47,7 +99,6 @@ const getOAuth2Client = () => {
   );
 };
 
-// In-memory session storage (use a real DB for production)
 const sessions: Record<string, any> = {};
 
 app.get('/api/auth/url', (req, res) => {
@@ -68,8 +119,6 @@ app.get(['/auth/callback', '/auth/callback/'], async (req, res) => {
   try {
     const client = getOAuth2Client();
     const { tokens } = await client.getToken(code as string);
-    // In a real app, you'd associate this with a user session
-    // For this demo, we'll just store it globally or use a simple cookie
     sessions['default'] = tokens;
 
     res.send(`
@@ -100,13 +149,6 @@ app.get('/api/analytics/properties', async (req, res) => {
   try {
     const client = getOAuth2Client();
     client.setCredentials(tokens);
-    const analyticsDataClient = new BetaAnalyticsDataClient({
-      authClient: client as any,
-    });
-
-    // Note: The @google-analytics/data client is primarily for Data API (GA4)
-    // To list properties, we might need the Admin API, but let's try a simple report first
-    // or assume the user provides a Property ID for now.
     res.json({ status: 'authenticated' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch properties' });
@@ -121,7 +163,6 @@ app.post('/api/analytics/query', async (req, res) => {
 
   if (!propertyId) return res.status(400).json({ error: 'Property ID is required' });
 
-  // Sanitize propertyId: remove 'properties/' prefix if user included it
   propertyId = propertyId.toString().replace(/^properties\//, '');
 
   try {
@@ -142,7 +183,7 @@ app.post('/api/analytics/query', async (req, res) => {
   } catch (error: any) {
     console.error('Analytics Query Error:', error);
     const message = error.details || error.message || 'Failed to query analytics';
-    res.status(error.code === 3 ? 400 : 500).json({ 
+    res.status(error.code === 3 ? 400 : 500).json({
       error: message,
       details: error.toString()
     });
@@ -161,7 +202,6 @@ if (process.env.NODE_ENV === 'development') {
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist/index.html'));
   });
-  
 }
 
 app.listen(PORT, () => {
