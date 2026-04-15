@@ -6,8 +6,6 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
-ARG GEMINI_API_KEY
-ENV GEMINI_API_KEY=$GEMINI_API_KEY
 # Build le front Vite
 RUN npm run build
 
