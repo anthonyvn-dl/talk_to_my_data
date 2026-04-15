@@ -131,14 +131,15 @@ app.post('/api/analytics/query', async (req, res) => {
   }
 });
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV === 'development') {
+  const { createServer: createViteServer } = await import('vite');
   const vite = await createViteServer({
     server: { middlewareMode: true },
     appType: 'spa',
   });
   app.use(vite.middlewares);
 } else {
-  app.use(express.static('dist'));
+  app.use(express.static(path.join(__dirname, 'dist')));
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist/index.html'));
   });
