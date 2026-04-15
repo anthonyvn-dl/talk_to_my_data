@@ -1,0 +1,13 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '--build-arg'
+      - 'GEMINI_API_KEY=$_GEMINI_API_KEY'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/talk-to-my-data'
+      - '.'
+substitutions:
+  _GEMINI_API_KEY: ''
+images:
+  - 'gcr.io/$PROJECT_ID/talk-to-my-data'
