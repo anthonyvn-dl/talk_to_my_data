@@ -1,13 +1,8 @@
-export async function getChatResponse(messages: any[]) {
-  const response = await fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages }),
-  });
-  if (!response.ok) throw new Error('Chat request failed');
-  return response.json();
-}
-
+import { GoogleGenAI, Type } from "@google/genai";
+ 
+// Instancié au niveau module : GEMINI_API_KEY doit être défini via vite.config.ts (define)
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+ 
 export const analyticsTool = {
   name: "query_google_analytics",
   parameters: {
@@ -50,7 +45,7 @@ export const analyticsTool = {
     required: ["propertyId"],
   },
 };
-
+ 
 export const bigQueryTool = {
   name: "query_bigquery",
   parameters: {
@@ -69,7 +64,7 @@ export const bigQueryTool = {
     required: ["query"],
   },
 };
-
+ 
 export async function runAnalyticsQuery(args: any) {
   const response = await fetch('/api/analytics/query', {
     method: 'POST',
@@ -82,7 +77,7 @@ export async function runAnalyticsQuery(args: any) {
   }
   return data;
 }
-
+ 
 export async function runBigQuery(args: any) {
   const response = await fetch('/api/bigquery/query', {
     method: 'POST',
@@ -95,42 +90,14 @@ export async function runBigQuery(args: any) {
   }
   return data;
 }
-
-export async function getChatResponse(messages: { role: 'user' | 'model' | 'system', parts: { text: string }[] }[]) {
-  const model = "gemini-3-flash-preview";
-  
-  const response = await ai.models.generateContent({
-    model,
-    contents: messages.map(m => ({ role: m.role, parts: m.parts })),
-    config: {
-      systemInstruction: `You are an expert data analyst specializing in Google Analytics and BigQuery. 
-      You help users understand their data by querying GA4 and BigQuery.
-      
-      Use the query_google_analytics tool for GA4 data.
-      Use the query_bigquery tool for BigQuery data.
-      
-      When you present data, you MUST provide a JSON block at the end of your response if the data can be visualized (tables, charts, etc.). 
-      Even for simple lists of data, use the "table" type in the JSON block to ensure it's rendered in a clean, readable UI component.
-      
-      The JSON block should follow this format:
-      \`\`\`json
-      {
-        "type": "table" | "lineChart" | "barChart" | "pieChart",
-        "title": "Descriptive Title",
-        "data": [
-          { "label": "Jan", "value": 100, "secondary": 50 },
-          ...
-        ],
-        "xAxis": "label",
-        "yAxis": "value",
-        "series": ["value", "secondary"]
-      }
-      \`\`\`
-      CRITICAL: All values in the "data" array that are meant to be plotted on a chart MUST be numbers, not strings.
-      Always explain the data clearly and suggest insights. Avoid using markdown tables if you can use the JSON visualization block instead.`,
-      tools: [{ functionDeclarations: [analyticsTool, bigQueryTool] }],
-    },
+ 
+export async function getChatResponse(messages: any[]) {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages }),
   });
-
-  return response;
+  if (!response.ok) throw new Error('Chat request failed');
+  return response.json();
 }
+ 
