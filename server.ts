@@ -8,8 +8,6 @@ import { fileURLToPath } from 'url';
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 app.post('/api/chat', async (req, res) => {
   const { messages } = req.body;
   
@@ -37,6 +35,7 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 app.use(express.json());
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 const getRedirectUri = () => {
   const appUrl = process.env.APP_URL?.replace(/\/$/, '');
